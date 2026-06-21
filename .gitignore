@@ -1,0 +1,16 @@
+# Personal runtime data
+stealth_vocab_wpf_settings.json
+熟悉词库.json
+生词库.json
+
+# Generated release packages
+*.zip
+
+# Old/local runtime artifacts
+__pycache__/
+*.pyc
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
