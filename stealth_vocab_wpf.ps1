@@ -573,7 +573,7 @@ function Open-Settings {
         $Stack.Children.Add($row) | Out-Null
     }
 
-    Add-Slider '透明度' 'opacity' 0.65 1 1
+    Add-Slider '透明度' 'opacity' 0.03 1 1
     Add-Slider '宽度' 'width' 180 760 1
     Add-Slider '高度' 'height' 50 260 1
     Add-Slider '英文大小' 'wordSize' 12 60 1
