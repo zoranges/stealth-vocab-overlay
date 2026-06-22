@@ -36,6 +36,7 @@ $DefaultSettings = [ordered]@{
     showMeaning = $true; showPos = $true; showPage = $true; showIndex = $true; showMode = $true
     topmost = $true; randomOrder = $false; locked = $false
     focusMode = $false; studyDeck = '全部'
+    lastPositionByDeck = @{}
 }
 
 function Copy-Settings($source) {
@@ -265,7 +266,50 @@ function Rebuild-StudyDeck {
 
 function Current-Word { return $Words[$ActiveIndices[$Index]] }
 
+function Ensure-PositionMap {
+    $map = $Settings['lastPositionByDeck']
+    if ($map -is [System.Collections.IDictionary]) { return $map }
+    $newMap = @{}
+    if ($map) {
+        foreach ($p in $map.PSObject.Properties) {
+            $newMap[$p.Name] = [int]$p.Value
+        }
+    }
+    $Settings['lastPositionByDeck'] = $newMap
+    return $newMap
+}
+
+function Save-CurrentStudyPosition {
+    if ($ActiveIndices.Count -le 0) { return }
+    $map = Ensure-PositionMap
+    $map[[string]$Settings.studyDeck] = [int]$script:Index
+}
+
+function Restore-StudyPosition {
+    $map = Ensure-PositionMap
+    $deck = [string]$Settings.studyDeck
+    $saved = 0
+    if ($map.Contains($deck)) { $saved = [int]$map[$deck] }
+    if ($ActiveIndices.Count -le 0) {
+        $script:Index = 0
+    } else {
+        $script:Index = [Math]::Max(0, [Math]::Min($saved, $ActiveIndices.Count - 1))
+    }
+}
+
+function Jump-ToStudyNumber($number) {
+    if ($ActiveIndices.Count -eq 0) { Rebuild-StudyDeck }
+    $target = [int]$number - 1
+    if ($target -lt 0) { $target = 0 }
+    if ($target -ge $ActiveIndices.Count) { $target = $ActiveIndices.Count - 1 }
+    $script:Index = $target
+    Refresh-Word
+    Schedule-Timer
+    Save-Settings
+}
+
 function Mark-CurrentWord($kind) {
+    $oldAbsIndex = $ActiveIndices[$Index]
     $entry = Current-Word
     $key = Word-Key $entry
     if ($kind -eq 'familiar') {
@@ -278,15 +322,22 @@ function Mark-CurrentWord($kind) {
     Save-WordSet $FamiliarFile $FamiliarWords
     Save-WordSet $UnknownFile $UnknownWords
     if ($Settings.studyDeck -ne '全部') {
-        $before = $ActiveIndices.Count
         Rebuild-StudyDeck
-        if ($ActiveIndices.Count -lt $before) {
-            # 当前词已从词库移除，Index 已自然指向下一个，直接刷新避免跳词
-            Refresh-Word
-            Schedule-Timer
+        if ($ActiveIndices.Count -eq 0) {
+            $script:Index = 0
         } else {
-            Next-Word
+            $nextPos = -1
+            for ($i = 0; $i -lt $ActiveIndices.Count; $i++) {
+                if ($ActiveIndices[$i] -gt $oldAbsIndex) {
+                    $nextPos = $i
+                    break
+                }
+            }
+            if ($nextPos -lt 0) { $nextPos = 0 }
+            $script:Index = $nextPos
         }
+        Refresh-Word
+        Schedule-Timer
     } else {
         Next-Word
     }
@@ -311,6 +362,9 @@ function Refresh-Word {
         else { $info.Add("手动 $($Settings.hotkey) · $deckLabel") }
     }
     $InfoText.Text = ($info -join '  ·  ')
+    Save-CurrentStudyPosition
+    $SaveTimer.Stop()
+    $SaveTimer.Start()
 }
 
 function Apply-Visuals {
@@ -695,10 +749,14 @@ function Open-Settings {
         if ($sender.SelectedItem) {
             try {
                 $Settings.studyDeck = [string]$sender.SelectedItem
-                $script:Index = 0
                 Rebuild-StudyDeck
+                Restore-StudyPosition
                 Refresh-Word
                 Schedule-Timer
+                if ($StartBox) {
+                    $StartBox.Text = [string]($Index + 1)
+                    $StartHint.Text = "/ $($ActiveIndices.Count)"
+                }
                 Save-Settings
             } catch {
                 [System.Windows.MessageBox]::Show("切换词库出错：`n$_", '错误') | Out-Null
@@ -707,6 +765,36 @@ function Open-Settings {
     })
     $Stack.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='本次背诵词库'})) | Out-Null
     $Stack.Children.Add($DeckCombo) | Out-Null
+
+    $StartRow = New-Object System.Windows.Controls.WrapPanel
+    $StartRow.Margin = '0,0,0,10'
+    $StartRow.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{
+        Text = '开始序号'
+        Width = 70
+        VerticalAlignment = 'Center'
+    })) | Out-Null
+    $StartBox = New-Object System.Windows.Controls.TextBox
+    $StartBox.Width = 80
+    $StartBox.Text = [string]($Index + 1)
+    $StartBox.Margin = '0,0,8,0'
+    $StartRow.Children.Add($StartBox) | Out-Null
+    $StartHint = New-Object System.Windows.Controls.TextBlock
+    $StartHint.Text = "/ $($ActiveIndices.Count)"
+    $StartHint.Width = 70
+    $StartHint.VerticalAlignment = 'Center'
+    $StartRow.Children.Add($StartHint) | Out-Null
+    $StartButton = New-Object System.Windows.Controls.Button
+    $StartButton.Content = '跳到这里'
+    $StartButton.Add_Click({
+        $n = 1
+        if ([int]::TryParse($StartBox.Text, [ref]$n)) {
+            Jump-ToStudyNumber $n
+            $StartBox.Text = [string]($Index + 1)
+            $StartHint.Text = "/ $($ActiveIndices.Count)"
+        }
+    })
+    $StartRow.Children.Add($StartButton) | Out-Null
+    $Stack.Children.Add($StartRow) | Out-Null
 
     foreach ($pair in @(
         @('自动轮播','autoMode'), @('显示释义','showMeaning'), @('显示词性','showPos'),
@@ -856,6 +944,7 @@ $Window.Add_Loaded({
 })
 
 Rebuild-StudyDeck
+Restore-StudyPosition
 Apply-Visuals
 Schedule-Timer
 $Window.ShowDialog() | Out-Null
