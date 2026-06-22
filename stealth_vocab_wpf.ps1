@@ -151,6 +151,12 @@ $SaveTimer = New-Object System.Windows.Threading.DispatcherTimer
 $SaveTimer.Interval = [TimeSpan]::FromMilliseconds(400)
 $SaveTimer.Add_Tick({ $SaveTimer.Stop(); Save-Settings })
 $WheelDelta = 0
+$IsPointerDown = $false
+$IsDragging = $false
+$DragStartPoint = $null
+$DragWindowLeft = 0
+$DragWindowTop = 0
+$DragStartSource = $null
 $HotKeyId = 2208
 $Source = $null
 $script:SettingsWindow = $null
@@ -203,12 +209,6 @@ $WordText.SnapsToDevicePixels = $true
 [System.Windows.Media.TextOptions]::SetTextHintingMode($WordText, [System.Windows.Media.TextHintingMode]::Fixed)
 Apply-TextShadow $WordText $Settings.wordColor
 $Panel.Children.Add($WordText) | Out-Null
-$WordText.Add_MouseLeftButtonUp({
-    if (-not $Settings.focusMode) {
-        Open-Settings
-        $_.Handled = $true
-    }
-})
 
 $MeaningText = New-Object System.Windows.Controls.TextBlock
 $MeaningText.FontFamily = 'Microsoft YaHei UI'
@@ -691,15 +691,50 @@ $WheelTimer.Add_Tick({
 })
 
 $Window.Add_MouseLeftButtonDown({
-    if (-not $Settings.focusMode -and $_.OriginalSource -eq $WordText) {
-        return
-    }
     if ($Settings.focusMode) {
         Mark-CurrentWord 'familiar'
         return
     }
-    if ($_.ClickCount -ge 2) { Next-Word; return }
-    if (-not $Settings.locked) { $Window.DragMove() }
+    $script:IsPointerDown = $true
+    $script:IsDragging = $false
+    $script:DragStartPoint = $_.GetPosition($Window)
+    $script:DragWindowLeft = [double]$Window.Left
+    $script:DragWindowTop = [double]$Window.Top
+    $script:DragStartSource = $_.OriginalSource
+    $Window.CaptureMouse() | Out-Null
+    $_.Handled = $true
+})
+$Window.Add_MouseMove({
+    if (-not $script:IsPointerDown -or $Settings.locked) { return }
+    $point = $_.GetPosition($Window)
+    $dx = $point.X - $script:DragStartPoint.X
+    $dy = $point.Y - $script:DragStartPoint.Y
+    if (-not $script:IsDragging -and ([Math]::Abs($dx) -gt 3 -or [Math]::Abs($dy) -gt 3)) {
+        $script:IsDragging = $true
+    }
+    if ($script:IsDragging) {
+        $Window.Left = $script:DragWindowLeft + $dx
+        $Window.Top = $script:DragWindowTop + $dy
+        $_.Handled = $true
+    }
+})
+$Window.Add_MouseLeftButtonUp({
+    if ($Settings.focusMode) { return }
+    $wasDragging = $script:IsDragging
+    $startSource = $script:DragStartSource
+    $script:IsPointerDown = $false
+    $script:IsDragging = $false
+    $script:DragStartPoint = $null
+    $script:DragStartSource = $null
+    $Window.ReleaseMouseCapture()
+    if (-not $wasDragging) {
+        if ($_.ClickCount -ge 2) {
+            Next-Word
+        } elseif ($startSource -eq $WordText) {
+            Open-Settings
+        }
+    }
+    $_.Handled = $true
 })
 $Window.Add_MouseRightButtonUp({
     if ($Settings.focusMode) {
