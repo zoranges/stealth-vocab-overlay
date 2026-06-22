@@ -12,6 +12,7 @@ $Hotkeys = [ordered]@{
     F6 = 0x75; F7 = 0x76; F8 = 0x77; F9 = 0x78; F10 = 0x79; F11 = 0x7A; F12 = 0x7B
     PageDown = 0x22; Insert = 0x2D
 }
+$FocusKeys = @('A','D','F','J','K','Q','W','E','Z','X','C','Space','Left','Right','Up','Down')
 
 Add-Type @"
 using System;
@@ -31,6 +32,7 @@ $DefaultSettings = [ordered]@{
     textShadow = $true; shadowBlur = 7; shadowOpacity = 0.85
     visibilityFixV3 = $true
     autoMode = $true; intervalMs = 5000; hotkey = 'F8'
+    focusFamiliarKey = 'A'; focusUnknownKey = 'D'
     showMeaning = $true; showPos = $true; showPage = $true; showIndex = $true; showMode = $true
     topmost = $true; randomOrder = $false; locked = $false
     focusMode = $false; studyDeck = '全部'
@@ -303,7 +305,7 @@ function Refresh-Word {
     if ($Settings.showIndex) { $info.Add("$($Index + 1)/$($ActiveIndices.Count)") }
     if ($Settings.showMode) {
         $deckLabel = [string]$Settings.studyDeck
-        if ($Settings.focusMode) { $info.Add("专注 · $deckLabel") }
+        if ($Settings.focusMode) { $info.Add("专注 · $deckLabel · $($Settings.focusFamiliarKey)熟/$($Settings.focusUnknownKey)生") }
         elseif ($Settings.autoMode) { $info.Add("自动 · $deckLabel") }
         else { $info.Add("手动 $($Settings.hotkey) · $deckLabel") }
     }
@@ -612,6 +614,46 @@ function Open-Settings {
     $Stack.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='手动下一词按键'})) | Out-Null
     $Stack.Children.Add($Combo) | Out-Null
 
+    $FocusKeyRow = New-Object System.Windows.Controls.WrapPanel
+    $FocusKeyRow.Margin = '0,0,0,10'
+
+    $FocusFamiliarPanel = New-Object System.Windows.Controls.StackPanel
+    $FocusFamiliarPanel.Width = 180
+    $FocusFamiliarPanel.Margin = '0,0,12,0'
+    $FocusFamiliarPanel.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='专注熟悉键'})) | Out-Null
+    $FocusFamiliarCombo = New-Object System.Windows.Controls.ComboBox
+    foreach ($k in $FocusKeys) { $FocusFamiliarCombo.Items.Add($k) | Out-Null }
+    $FocusFamiliarCombo.SelectedItem = [string]$Settings.focusFamiliarKey
+    $FocusFamiliarCombo.Add_SelectionChanged({
+        param($sender, $eventArgs)
+        if ($sender.SelectedItem) {
+            $Settings.focusFamiliarKey = [string]$sender.SelectedItem
+            Refresh-Word
+            Save-Settings
+        }
+    })
+    $FocusFamiliarPanel.Children.Add($FocusFamiliarCombo) | Out-Null
+
+    $FocusUnknownPanel = New-Object System.Windows.Controls.StackPanel
+    $FocusUnknownPanel.Width = 180
+    $FocusUnknownPanel.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='专注生词键'})) | Out-Null
+    $FocusUnknownCombo = New-Object System.Windows.Controls.ComboBox
+    foreach ($k in $FocusKeys) { $FocusUnknownCombo.Items.Add($k) | Out-Null }
+    $FocusUnknownCombo.SelectedItem = [string]$Settings.focusUnknownKey
+    $FocusUnknownCombo.Add_SelectionChanged({
+        param($sender, $eventArgs)
+        if ($sender.SelectedItem) {
+            $Settings.focusUnknownKey = [string]$sender.SelectedItem
+            Refresh-Word
+            Save-Settings
+        }
+    })
+    $FocusUnknownPanel.Children.Add($FocusUnknownCombo) | Out-Null
+
+    $FocusKeyRow.Children.Add($FocusFamiliarPanel) | Out-Null
+    $FocusKeyRow.Children.Add($FocusUnknownPanel) | Out-Null
+    $Stack.Children.Add($FocusKeyRow) | Out-Null
+
     $DeckCombo = New-Object System.Windows.Controls.ComboBox
     $DeckCombo.Margin = '0,0,0,10'
     foreach ($deck in @('全部','未分类','熟悉','生词')) { $DeckCombo.Items.Add($deck) | Out-Null }
@@ -748,6 +790,17 @@ $Window.Add_MouseWheel({
     $_.Handled = $true
 })
 $Window.Add_KeyDown({
+    $keyName = [string]$_.Key
+    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusFamiliarKey) {
+        Mark-CurrentWord 'familiar'
+        $_.Handled = $true
+        return
+    }
+    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusUnknownKey) {
+        Mark-CurrentWord 'unknown'
+        $_.Handled = $true
+        return
+    }
     if ($_.Key -eq 'Right' -or $_.Key -eq 'Space') { Next-Word }
     elseif ($_.Key -eq 'Left') { Prev-Word }
     elseif ($_.Key -eq 'Enter') { Open-Settings }
