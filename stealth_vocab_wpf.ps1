@@ -173,6 +173,7 @@ $Window.ShowInTaskbar = $true
 $Window.Topmost = [bool]$Settings.topmost
 $Window.ResizeMode = 'NoResize'
 $Window.WindowStartupLocation = 'Manual'
+$Window.Focusable = $true
 $Window.UseLayoutRounding = $true
 $Window.SnapsToDevicePixels = $true
 $Window.Left = [double]$Settings.x
@@ -361,6 +362,37 @@ function Prev-Word {
 function Queue-Wheel($delta) {
     $script:WheelDelta += [int]$delta
     if (-not $WheelTimer.IsEnabled) { $WheelTimer.Start() }
+}
+
+function Handle-AppKey($keyName) {
+    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusFamiliarKey) {
+        Mark-CurrentWord 'familiar'
+        return $true
+    }
+    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusUnknownKey) {
+        Mark-CurrentWord 'unknown'
+        return $true
+    }
+    if ($keyName -eq 'Right' -or $keyName -eq 'Space') {
+        Next-Word
+        return $true
+    }
+    if ($keyName -eq 'Left') {
+        Prev-Word
+        return $true
+    }
+    if ($keyName -eq 'Enter') {
+        Open-Settings
+        return $true
+    }
+    if ($keyName -eq 'Escape' -and $Settings.focusMode) {
+        $Settings.focusMode = $false
+        Refresh-Word
+        Schedule-Timer
+        Save-Settings
+        return $true
+    }
+    return $false
 }
 
 function Register-Hotkey {
@@ -733,6 +765,8 @@ $WheelTimer.Add_Tick({
 })
 
 $Window.Add_MouseLeftButtonDown({
+    $Window.Activate() | Out-Null
+    $Window.Focus() | Out-Null
     if ($Settings.focusMode) {
         Mark-CurrentWord 'familiar'
         return
@@ -772,7 +806,7 @@ $Window.Add_MouseLeftButtonUp({
     if (-not $wasDragging) {
         if ($_.ClickCount -ge 2) {
             Next-Word
-        } elseif ($startSource -eq $WordText) {
+        } else {
             Open-Settings
         }
     }
@@ -789,26 +823,9 @@ $Window.Add_MouseWheel({
     Queue-Wheel $_.Delta
     $_.Handled = $true
 })
-$Window.Add_KeyDown({
-    $keyName = [string]$_.Key
-    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusFamiliarKey) {
-        Mark-CurrentWord 'familiar'
+$Window.Add_PreviewKeyDown({
+    if (Handle-AppKey ([string]$_.Key)) {
         $_.Handled = $true
-        return
-    }
-    if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusUnknownKey) {
-        Mark-CurrentWord 'unknown'
-        $_.Handled = $true
-        return
-    }
-    if ($_.Key -eq 'Right' -or $_.Key -eq 'Space') { Next-Word }
-    elseif ($_.Key -eq 'Left') { Prev-Word }
-    elseif ($_.Key -eq 'Enter') { Open-Settings }
-    elseif ($_.Key -eq 'Escape' -and $Settings.focusMode) {
-        $Settings.focusMode = $false
-        Refresh-Word
-        Schedule-Timer
-        Save-Settings
     }
 })
 $Window.Add_LocationChanged({
@@ -832,6 +849,10 @@ $Window.Add_SourceInitialized({
         return [IntPtr]::Zero
     }) | Out-Null
     Register-Hotkey
+})
+$Window.Add_Loaded({
+    $Window.Activate() | Out-Null
+    $Window.Focus() | Out-Null
 })
 
 Rebuild-StudyDeck
