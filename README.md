@@ -1,102 +1,104 @@
-# 工位背单词悬浮窗
+﻿# Stealth Vocab Overlay
 
-一个适合 Windows 桌面使用的轻量悬浮背单词工具。它会在桌面角落显示单词，可以调透明度、位置、大小、轮播速度，也支持专注模式、熟悉词库、生词库和词表目录。
+A lightweight Windows desktop overlay for reviewing vocabulary with minimal visual presence. It shows words in a small transparent floating window and supports auto rotation, manual navigation, focus mode, familiar/unknown word lists, and a searchable catalog.
 
-项目基于 Windows PowerShell + WPF 实现，不需要安装 Python、Node.js 或额外依赖。Windows 10 / Windows 11 解压后双击即可运行。
+The app is built with Windows PowerShell and WPF. It does not require Python, Node.js, or any third-party runtime. On Windows 10 or Windows 11, users can unzip the project and run it directly.
 
-## 功能特点
+## Features
 
-- 桌面透明悬浮窗显示单词
-- 支持自动轮播和手动切换
-- 支持全局热键，默认 `F8` 下一词
-- 可调透明度、窗口大小、字号、轮播速度；透明度最低可接近不可见
-- 支持文字预设和清晰增强，复杂壁纸上也能看清
-- 支持专注模式：
-  - 鼠标滚轮切换单词
-  - 左键标记为熟悉
-  - 右键标记为生词
-  - 自定义快捷键标记熟悉/生词，默认 `A`=熟悉、`D`=生词
-  - `Esc` 退出专注模式
-  - `Enter` 打开设置
-- 支持本次背诵词库选择：
-  - 全部
-  - 未分类
-  - 熟悉
-  - 生词
-- 自动记住每个词库上次背到的位置，下次启动或切换词库时继续
-- 可以在设置里输入开始序号，手动选择从当前词库的第几个单词开始
-- 可以在设置里点击按钮选择并导入 `熟悉词库.json` 或 `生词库.json`
-- 词表目录使用独立标签页显示：
-  - 全部
-  - 未分类
-  - 熟悉词库
-  - 生词库
-- 熟悉词和生词会分别保存到独立 JSON 文件
-- 提供一键打包脚本，方便分享给别人使用
+- Transparent floating word overlay
+- Auto rotation and manual navigation
+- Global next-word hotkey, default `F8`
+- Adjustable opacity, position, window size, font size, and rotation speed
+- Opacity can be set as low as about `0.03` for an almost invisible overlay
+- Text presets and readability enhancement for complex wallpapers
+- Focus mode:
+  - Mouse wheel switches words
+  - Left click marks the word as familiar
+  - Right click marks the word as unknown
+  - Custom familiar/unknown hotkeys, default `A` and `D`
+  - `Esc` exits focus mode
+  - `Enter` opens settings
+- Study deck selection:
+  - All
+  - Unclassified
+  - Familiar
+  - Unknown
+- Remembers the last position separately for each study deck
+- Supports jumping to a specific start number in the current deck
+- Imports familiar or unknown word-list JSON files from any location
+- Catalog window with separate tabs for:
+  - All
+  - Unclassified
+  - Familiar
+  - Unknown
+- Familiar and unknown words are saved as separate local JSON files
+- One-click packaging script for sharing a clean release zip
 
-## 快速开始
+## Quick Start
 
-1. 下载或克隆本项目。
-2. 确保以下文件在同一个文件夹中：
+1. Download or clone this repository.
+2. Keep these files in the same folder:
    - `stealth_vocab_wpf.ps1`
-   - `启动背单词悬浮窗.bat`
-   - `红宝书词汇.json`
-3. 双击 `启动背单词悬浮窗.bat`。
-4. 桌面上会出现单词悬浮窗。
+   - the bundled `.bat` launcher
+   - the main vocabulary JSON file
+3. Double-click the bundled `.bat` launcher.
+4. A small floating vocabulary window will appear on the desktop.
 
-如果 Windows 弹出安全提醒，选择“仍要运行”即可。本工具不联网，也不需要安装。
+If Windows shows a security prompt, choose to continue running it. The app does not need network access and does not require installation.
 
-## 常用操作
+## Controls
 
-| 操作 | 效果 |
+| Action | Result |
 |---|---|
-| 点击悬浮窗且不拖动 | 打开设置 |
-| 按住左键拖动悬浮窗任意位置 | 移动悬浮窗 |
-| 双击悬浮窗 | 下一个单词 |
-| `F8` | 全局下一词 |
-| `Space` / `→` | 下一个单词 |
-| `←` | 上一个单词 |
-| `Enter` | 打开设置 |
-| 专注模式下滚轮 | 切换单词 |
-| 专注模式下左键 | 标为熟悉 |
-| 专注模式下右键 | 标为生词 |
-| 专注模式下 `A` / `D` | 默认标熟悉 / 标生词，可在设置里自定义 |
-| 专注模式下 `Esc` | 退出专注模式 |
+| Click the overlay without dragging | Open settings |
+| Hold left mouse button and drag anywhere on the overlay | Move the overlay |
+| Double-click the overlay | Next word |
+| `F8` | Global next word |
+| `Space` / `Right Arrow` | Next word |
+| `Left Arrow` | Previous word |
+| `Enter` | Open settings |
+| Mouse wheel in focus mode | Switch words |
+| Left click in focus mode | Mark as familiar |
+| Right click in focus mode | Mark as unknown |
+| `A` / `D` in focus mode | Default familiar / unknown hotkeys, configurable |
+| `Esc` in focus mode | Exit focus mode |
 
-## 设置说明
+## Settings
 
-设置窗口里的选项会实时生效，并自动保存到 `stealth_vocab_wpf_settings.json`。
+Settings take effect immediately and are saved to `stealth_vocab_wpf_settings.json`.
 
-主要设置包括：
+Available settings include:
 
-- 透明度，范围约 `0.03` 到 `1.0`
-- 宽度和高度
-- 英文字号
-- 释义字号
-- 轮播秒数
-- 手动下一词按键
-- 文字预设
-- 清晰增强
-- 本次背诵词库
-- 开始序号
-- 导入熟悉词库 JSON / 导入生词库 JSON
-- 自动轮播
-- 显示释义、词性、页码、序号、模式
-- 窗口置顶
-- 淡背景辅助
-- 随机顺序
-- 锁定位置
-- 专注模式
+- Opacity, from about `0.03` to `1.0`
+- Width and height
+- English word font size
+- Meaning font size
+- Rotation interval
+- Manual next-word hotkey
+- Text presets
+- Readability enhancement
+- Study deck
+- Start number
+- Import familiar-word JSON
+- Import unknown-word JSON
+- Auto rotation
+- Show or hide meaning, part of speech, page number, index, and mode
+- Always on top
+- Light background helper
+- Random order
+- Lock position
+- Focus mode
 
-## 词库与学习记录
+## Vocabulary Data
 
-主词库文件是：
+The main vocabulary file is:
 
 ```text
-红宝书词汇.json
+main-vocabulary.json
 ```
 
-它的结构大致如下：
+Expected structure:
 
 ```json
 [
@@ -105,7 +107,7 @@
     "meanings": [
       {
         "pos": "n.",
-        "meanings": ["全景，全景图", "全貌，概述"]
+        "meanings": ["panorama", "overview"]
       }
     ],
     "page": 1
@@ -113,67 +115,78 @@
 ]
 ```
 
-运行后会自动读取当前目录下的 `熟悉词库.json` 和 `生词库.json`。如果你把这两个文件从别处复制到程序目录，重新打开程序或打开词表目录时，系统会自动刷新词库状态，并生成最新的 `未分类词库.json`。
-
-你也可以在设置窗口中点击 `导入熟悉词库 JSON` 或 `导入生词库 JSON`，选择任意位置的 JSON 文件导入。导入后程序会保存到当前目录，并自动刷新未分类词库。
-
-运行后会自动生成个人数据文件：
-
-| 文件 | 说明 |
-|---|---|
-| `stealth_vocab_wpf_settings.json` | 个人设置 |
-| `熟悉词库.json` | 已标记为熟悉的单词 |
-| `生词库.json` | 已标记为生词的单词 |
-| `未分类词库.json` | 自动计算出的未分类单词 |
-
-这些文件已被 `.gitignore` 排除，不会被提交到仓库。
-
-## 分享给别人
-
-双击：
+On startup and when rebuilding the catalog, the app reads these local files if they exist:
 
 ```text
-打包发布.ps1
+familiar-words.json
+unknown-words.json
 ```
 
-脚本会生成一个类似下面的压缩包：
+You can copy those files into the app directory, or import them from the settings window. The app will then refresh the deck state and generate:
 
 ```text
-工位背单词悬浮窗_20260621.zip
+unclassified-words.json
 ```
 
-分享包只包含运行所需文件，不包含你的个人设置、熟悉词库和生词库。
+Generated local data files:
 
-对方使用方法：
-
-1. 解压 zip。
-2. 进入 `工位背单词悬浮窗` 文件夹。
-3. 双击 `启动背单词悬浮窗.bat`。
-
-## 文件说明
-
-| 文件 | 作用 |
+| File | Purpose |
 |---|---|
-| `stealth_vocab_wpf.ps1` | 主程序 |
-| `启动背单词悬浮窗.bat` | 启动入口 |
-| `红宝书词汇.json` | 主词库 |
-| `使用说明.md` | 用户说明 |
-| `分享说明.txt` | 分享给别人时的简短说明 |
-| `打包发布.ps1` | 一键生成分享 zip |
-| `.gitignore` | 排除个人数据和生成物 |
+| `stealth_vocab_wpf_settings.json` | Personal settings |
+| the familiar-word JSON file | Words marked as familiar |
+| the unknown-word JSON file | Words marked as unknown |
+| the unclassified-word JSON file | Automatically computed unclassified words |
 
-## 系统要求
+These files are ignored by Git and are not included in the clean sharing package.
 
-- Windows 10 或 Windows 11
+## Sharing
+
+Run:
+
+```text
+package-release.ps1
+```
+
+The script creates a zip package similar to:
+
+```text
+stealth-vocab-overlay_YYYYMMDD.zip
+```
+
+The package includes only the files required to run the app. It does not include personal settings, familiar words, unknown words, or unclassified words.
+
+Recipient instructions:
+
+1. Extract the zip file.
+2. Open the extracted app folder.
+3. Double-click the bundled `.bat` launcher.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `stealth_vocab_wpf.ps1` | Main app |
+| the bundled `.bat` launcher | Launcher |
+| the main vocabulary JSON file | Main vocabulary database |
+| the Chinese user guide | User guide |
+| the short sharing guide | Short sharing guide |
+| the package builder script | Clean package builder |
+| `.gitignore` | Excludes personal data and generated files |
+
+## Requirements
+
+- Windows 10 or Windows 11
 - PowerShell 5.1
-- WPF / .NET Framework 桌面组件
+- WPF / .NET Framework desktop components
 
-这些通常是 Windows 默认自带的。
+These are normally available by default on Windows.
 
-## 隐私说明
+## Privacy
 
-程序不会联网，不会上传任何数据。熟悉词、生词和个人设置都只保存在本地当前文件夹中。
+The app does not upload data and does not require network access. Settings, familiar words, unknown words, and unclassified words are stored only in the local app folder.
 
 ## License
 
 MIT License
+
+
