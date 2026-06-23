@@ -7,6 +7,7 @@ $WordsFile = Join-Path $AppDir '红宝书词汇.json'
 $SettingsFile = Join-Path $AppDir 'stealth_vocab_wpf_settings.json'
 $FamiliarFile = Join-Path $AppDir '熟悉词库.json'
 $UnknownFile = Join-Path $AppDir '生词库.json'
+$UnclassifiedFile = Join-Path $AppDir '未分类词库.json'
 
 $Hotkeys = [ordered]@{
     F6 = 0x75; F7 = 0x76; F8 = 0x77; F9 = 0x78; F10 = 0x79; F11 = 0x7A; F12 = 0x7B
@@ -93,6 +94,24 @@ function Save-WordSet($path, $set) {
     } else {
         $arr | ConvertTo-Json -Depth 2 | Set-Content -LiteralPath $path -Encoding UTF8
     }
+}
+
+function Sync-UnclassifiedWordSet {
+    if (-not $Words) { return }
+    $set = @{}
+    foreach ($w in $Words) {
+        $key = Word-Key $w
+        if (-not $FamiliarWords.ContainsKey($key) -and -not $UnknownWords.ContainsKey($key)) {
+            $set[$key] = $true
+        }
+    }
+    Save-WordSet $UnclassifiedFile $set
+}
+
+function Reload-ExternalWordSets {
+    $script:FamiliarWords = Load-WordSet $FamiliarFile
+    $script:UnknownWords = Load-WordSet $UnknownFile
+    Sync-UnclassifiedWordSet
 }
 
 function Meaning-Text($entry) {
@@ -245,6 +264,7 @@ function Word-Key($entry) {
 }
 
 function Rebuild-StudyDeck {
+    Reload-ExternalWordSets
     $ActiveIndices.Clear()
     for ($i = 0; $i -lt $Words.Count; $i++) {
         $key = Word-Key $Words[$i]
@@ -462,6 +482,9 @@ function Open-List {
         $script:ListWindow.Activate() | Out-Null
         return
     }
+    Rebuild-StudyDeck
+    Restore-StudyPosition
+    Refresh-Word
     $ListWindow = New-Object System.Windows.Window
     $script:ListWindow = $ListWindow
     $ListWindow.Title = '单词目录'
@@ -786,11 +809,14 @@ function Open-Settings {
     $StartButton = New-Object System.Windows.Controls.Button
     $StartButton.Content = '跳到这里'
     $StartButton.Add_Click({
-        $n = 1
-        if ([int]::TryParse($StartBox.Text, [ref]$n)) {
+        $raw = [string]$StartBox.Text
+        if ($raw -match '\d+') {
+            $n = [int]$Matches[0]
             Jump-ToStudyNumber $n
             $StartBox.Text = [string]($Index + 1)
             $StartHint.Text = "/ $($ActiveIndices.Count)"
+        } else {
+            $StartBox.Text = [string]($Index + 1)
         }
     })
     $StartRow.Children.Add($StartButton) | Out-Null

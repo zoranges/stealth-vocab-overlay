@@ -8,6 +8,7 @@
 - 不包含 stealth_vocab_wpf_settings.json
 - 不包含 熟悉词库.json
 - 不包含 生词库.json
+- 不包含 未分类词库.json
 
 对方使用方法：
 

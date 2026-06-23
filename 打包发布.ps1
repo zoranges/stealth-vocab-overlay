@@ -22,6 +22,7 @@ $ExcludeFiles = @(
     'stealth_vocab_wpf_settings.json',
     '熟悉词库.json',
     '生词库.json',
+    '未分类词库.json',
     'stealth_vocab.py',
     'stealth_vocab_settings.json'
 )
