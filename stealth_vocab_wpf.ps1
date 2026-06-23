@@ -32,7 +32,7 @@ $DefaultSettings = [ordered]@{
     backdrop = $false; backdropOpacity = 0.14
     textShadow = $true; shadowBlur = 7; shadowOpacity = 0.85
     visibilityFixV3 = $true
-    autoMode = $true; intervalMs = 5000; hotkey = 'F8'
+    autoMode = $true; intervalMs = 5000; hotkey = 'F8'; stealthHotkey = 'F6'
     focusFamiliarKey = 'A'; focusUnknownKey = 'D'
     showMeaning = $true; showPos = $true; showPage = $true; showIndex = $true; showMode = $true
     topmost = $true; randomOrder = $false; locked = $false
@@ -173,6 +173,7 @@ $SaveTimer = New-Object System.Windows.Threading.DispatcherTimer
 $SaveTimer.Interval = [TimeSpan]::FromMilliseconds(400)
 $SaveTimer.Add_Tick({ $SaveTimer.Stop(); Save-Settings })
 $WheelDelta = 0
+$IsStealthHidden = $false
 $IsPointerDown = $false
 $IsDragging = $false
 $DragStartPoint = $null
@@ -180,6 +181,7 @@ $DragWindowLeft = 0
 $DragWindowTop = 0
 $DragStartSource = $null
 $HotKeyId = 2208
+$StealthHotKeyId = 2209
 $Source = $null
 $script:SettingsWindow = $null
 $script:ListWindow = $null
@@ -484,7 +486,23 @@ function Queue-Wheel($delta) {
     if (-not $WheelTimer.IsEnabled) { $WheelTimer.Start() }
 }
 
+function Toggle-StealthVisibility {
+    if ($script:IsStealthHidden) {
+        $Window.Show()
+        $Window.Activate() | Out-Null
+        $Window.Focus() | Out-Null
+        $script:IsStealthHidden = $false
+    } else {
+        $script:IsStealthHidden = $true
+        $Window.Hide()
+    }
+}
+
 function Handle-AppKey($keyName) {
+    if ($keyName -eq [string]$Settings.stealthHotkey) {
+        Toggle-StealthVisibility
+        return $true
+    }
     if ($Settings.focusMode -and $keyName -eq [string]$Settings.focusFamiliarKey) {
         Mark-CurrentWord 'familiar'
         return $true
@@ -518,8 +536,13 @@ function Handle-AppKey($keyName) {
 function Register-Hotkey {
     if ($Source) {
         [HotKeyNative]::UnregisterHotKey($Source.Handle, $HotKeyId) | Out-Null
+        [HotKeyNative]::UnregisterHotKey($Source.Handle, $StealthHotKeyId) | Out-Null
         $vk = [uint32]$Hotkeys[$Settings.hotkey]
         [HotKeyNative]::RegisterHotKey($Source.Handle, $HotKeyId, 0, $vk) | Out-Null
+        if ([string]$Settings.stealthHotkey -ne [string]$Settings.hotkey) {
+            $stealthVk = [uint32]$Hotkeys[$Settings.stealthHotkey]
+            [HotKeyNative]::RegisterHotKey($Source.Handle, $StealthHotKeyId, 0, $stealthVk) | Out-Null
+        }
     }
 }
 
@@ -769,6 +792,22 @@ function Open-Settings {
     $Stack.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='手动下一词按键'})) | Out-Null
     $Stack.Children.Add($Combo) | Out-Null
 
+    $StealthCombo = New-Object System.Windows.Controls.ComboBox
+    $StealthCombo.Margin = '0,0,0,10'
+    foreach ($k in $Hotkeys.Keys) { $StealthCombo.Items.Add($k) | Out-Null }
+    $StealthCombo.SelectedItem = [string]$Settings.stealthHotkey
+    $StealthCombo.Add_SelectionChanged({
+        param($sender, $eventArgs)
+        if ($sender.SelectedItem) {
+            $Settings.stealthHotkey = [string]$sender.SelectedItem
+            Register-Hotkey
+            Refresh-Word
+            Save-Settings
+        }
+    })
+    $Stack.Children.Add((New-Object System.Windows.Controls.TextBlock -Property @{Text='一键隐匿按键'})) | Out-Null
+    $Stack.Children.Add($StealthCombo) | Out-Null
+
     $FocusKeyRow = New-Object System.Windows.Controls.WrapPanel
     $FocusKeyRow.Margin = '0,0,0,10'
 
@@ -1013,6 +1052,7 @@ $Window.Add_LocationChanged({
 })
 $Window.Add_Closed({
     if ($Source) { [HotKeyNative]::UnregisterHotKey($Source.Handle, $HotKeyId) | Out-Null }
+    if ($Source) { [HotKeyNative]::UnregisterHotKey($Source.Handle, $StealthHotKeyId) | Out-Null }
     Save-Settings
 })
 $Window.Add_SourceInitialized({
@@ -1021,6 +1061,10 @@ $Window.Add_SourceInitialized({
         param($hwnd, $msg, $wParam, $lParam, [ref]$handled)
         if ($msg -eq 0x0312 -and $wParam.ToInt32() -eq $HotKeyId) {
             Next-Word
+            $handled.Value = $true
+        }
+        if ($msg -eq 0x0312 -and $wParam.ToInt32() -eq $StealthHotKeyId) {
+            Toggle-StealthVisibility
             $handled.Value = $true
         }
         return [IntPtr]::Zero

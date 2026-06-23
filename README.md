@@ -9,6 +9,7 @@ The app is built with Windows PowerShell and WPF. It does not require Python, No
 - Transparent floating word overlay
 - Auto rotation and manual navigation
 - Global next-word hotkey, default `F8`
+- Stealth toggle hotkey, default `F6`, hides or shows the overlay instantly
 - Adjustable opacity, position, window size, font size, and rotation speed
 - Opacity can be set as low as about `0.03` for an almost invisible overlay
 - Text presets and readability enhancement for complex wallpapers
@@ -55,6 +56,7 @@ If Windows shows a security prompt, choose to continue running it. The app does 
 | Hold left mouse button and drag anywhere on the overlay | Move the overlay |
 | Double-click the overlay | Next word |
 | `F8` | Global next word |
+| `F6` | Hide or show the overlay instantly |
 | `Space` / `Right Arrow` | Next word |
 | `Left Arrow` | Previous word |
 | `Enter` | Open settings |
@@ -76,6 +78,7 @@ Available settings include:
 - Meaning font size
 - Rotation interval
 - Manual next-word hotkey
+- Stealth toggle hotkey
 - Text presets
 - Readability enhancement
 - Study deck
