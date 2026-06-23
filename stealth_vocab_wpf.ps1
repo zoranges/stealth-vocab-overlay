@@ -333,6 +333,34 @@ function Jump-ToStudyNumber($number) {
     Save-Settings
 }
 
+function Import-WordSetFromDialog($kind) {
+    $dialog = New-Object Microsoft.Win32.OpenFileDialog
+    $dialog.Title = if ($kind -eq 'familiar') { '选择熟悉词库 JSON' } else { '选择生词库 JSON' }
+    $dialog.Filter = 'JSON files (*.json)|*.json|All files (*.*)|*.*'
+    $dialog.Multiselect = $false
+    if ($dialog.ShowDialog() -ne $true) { return }
+
+    $set = Load-WordSet $dialog.FileName
+    if ($kind -eq 'familiar') {
+        $script:FamiliarWords = $set
+        foreach ($key in @($script:FamiliarWords.Keys)) {
+            if ($script:UnknownWords.ContainsKey($key)) { $script:UnknownWords.Remove($key) }
+        }
+    } else {
+        $script:UnknownWords = $set
+        foreach ($key in @($script:UnknownWords.Keys)) {
+            if ($script:FamiliarWords.ContainsKey($key)) { $script:FamiliarWords.Remove($key) }
+        }
+    }
+    Save-WordSet $FamiliarFile $script:FamiliarWords
+    Save-WordSet $UnknownFile $script:UnknownWords
+    Rebuild-StudyDeck
+    Restore-StudyPosition
+    Refresh-Word
+    Schedule-Timer
+    [System.Windows.MessageBox]::Show("导入完成。`n熟悉词：$($script:FamiliarWords.Count)`n生词：$($script:UnknownWords.Count)`n未分类词库已自动更新。", '导入完成') | Out-Null
+}
+
 function Mark-CurrentWord($kind) {
     $oldAbsIndex = $ActiveIndices[$Index]
     $entry = Current-Word
@@ -828,6 +856,21 @@ function Open-Settings {
     })
     $StartRow.Children.Add($StartButton) | Out-Null
     $Stack.Children.Add($StartRow) | Out-Null
+
+    $ImportRow = New-Object System.Windows.Controls.WrapPanel
+    $ImportRow.Margin = '0,0,0,10'
+    $ImportFamiliarButton = New-Object System.Windows.Controls.Button
+    $ImportFamiliarButton.Content = '导入熟悉词库 JSON'
+    $ImportFamiliarButton.Margin = '0,0,8,6'
+    $ImportFamiliarButton.Add_Click({ Import-WordSetFromDialog 'familiar' })
+    $ImportRow.Children.Add($ImportFamiliarButton) | Out-Null
+
+    $ImportUnknownButton = New-Object System.Windows.Controls.Button
+    $ImportUnknownButton.Content = '导入生词库 JSON'
+    $ImportUnknownButton.Margin = '0,0,8,6'
+    $ImportUnknownButton.Add_Click({ Import-WordSetFromDialog 'unknown' })
+    $ImportRow.Children.Add($ImportUnknownButton) | Out-Null
+    $Stack.Children.Add($ImportRow) | Out-Null
 
     foreach ($pair in @(
         @('自动轮播','autoMode'), @('显示释义','showMeaning'), @('显示词性','showPos'),
