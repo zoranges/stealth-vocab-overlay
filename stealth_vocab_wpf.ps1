@@ -279,14 +279,13 @@ function Rebuild-StudyDeck {
         }
         if ($include) { $ActiveIndices.Add($i) | Out-Null }
     }
-    if ($ActiveIndices.Count -eq 0) {
-        for ($i = 0; $i -lt $Words.Count; $i++) { $ActiveIndices.Add($i) | Out-Null }
-        $Settings.studyDeck = '全部'
-    }
-    if ($script:Index -ge $ActiveIndices.Count) { $script:Index = 0 }
+    if ($ActiveIndices.Count -eq 0 -or $script:Index -ge $ActiveIndices.Count) { $script:Index = 0 }
 }
 
-function Current-Word { return $Words[$ActiveIndices[$Index]] }
+function Current-Word {
+    if ($ActiveIndices.Count -eq 0) { return $null }
+    return $Words[$ActiveIndices[$Index]]
+}
 
 function Ensure-PositionMap {
     $map = $Settings['lastPositionByDeck']
@@ -321,6 +320,10 @@ function Restore-StudyPosition {
 
 function Jump-ToStudyNumber($number) {
     Rebuild-StudyDeck
+    if ($ActiveIndices.Count -eq 0) {
+        Refresh-Word
+        return
+    }
     $target = [int]$number - 1
     if ($target -lt 0) { $target = 0 }
     if ($target -ge $ActiveIndices.Count) { $target = $ActiveIndices.Count - 1 }
@@ -362,6 +365,7 @@ function Import-WordSetFromDialog($kind) {
 }
 
 function Mark-CurrentWord($kind) {
+    if ($ActiveIndices.Count -eq 0) { return }
     $oldAbsIndex = $ActiveIndices[$Index]
     $entry = Current-Word
     $key = Word-Key $entry
@@ -398,6 +402,13 @@ function Mark-CurrentWord($kind) {
 
 function Refresh-Word {
     $entry = Current-Word
+    if (-not $entry) {
+        $WordText.Text = 'No words in this deck'
+        $MeaningText.Text = ''
+        $InfoText.Text = "$($Settings.studyDeck) 0/0"
+        Save-CurrentStudyPosition
+        return
+    }
     $WordText.Text = [string]$entry.english
     if ($Settings.showMeaning) {
         $MeaningText.Visibility = 'Visible'
@@ -453,6 +464,7 @@ function Schedule-Timer {
 
 function Next-Word {
     if ($ActiveIndices.Count -eq 0) { Rebuild-StudyDeck }
+    if ($ActiveIndices.Count -eq 0) { Refresh-Word; return }
     if ($Settings.randomOrder) { $script:Index = Get-Random -Minimum 0 -Maximum $ActiveIndices.Count }
     else { $script:Index = ($script:Index + 1) % $ActiveIndices.Count }
     Refresh-Word
@@ -461,6 +473,7 @@ function Next-Word {
 
 function Prev-Word {
     if ($ActiveIndices.Count -eq 0) { Rebuild-StudyDeck }
+    if ($ActiveIndices.Count -eq 0) { Refresh-Word; return }
     $script:Index = ($script:Index - 1 + $ActiveIndices.Count) % $ActiveIndices.Count
     Refresh-Word
     Schedule-Timer
