@@ -183,6 +183,8 @@ $HotKeyId = 2208
 $Source = $null
 $script:SettingsWindow = $null
 $script:ListWindow = $null
+$script:StartBoxControl = $null
+$script:StartHintControl = $null
 
 $Window = New-Object System.Windows.Window
 $Window.Title = '工位背单词悬浮窗'
@@ -776,9 +778,9 @@ function Open-Settings {
                 Restore-StudyPosition
                 Refresh-Word
                 Schedule-Timer
-                if ($StartBox) {
-                    $StartBox.Text = [string]($Index + 1)
-                    $StartHint.Text = "/ $($ActiveIndices.Count)"
+                if ($script:StartBoxControl -is [System.Windows.Controls.TextBox]) {
+                    $script:StartBoxControl.Text = [string]($Index + 1)
+                    $script:StartHintControl.Text = "/ $($ActiveIndices.Count)"
                 }
                 Save-Settings
             } catch {
@@ -797,11 +799,13 @@ function Open-Settings {
         VerticalAlignment = 'Center'
     })) | Out-Null
     $StartBox = New-Object System.Windows.Controls.TextBox
+    $script:StartBoxControl = $StartBox
     $StartBox.Width = 80
     $StartBox.Text = [string]($Index + 1)
     $StartBox.Margin = '0,0,8,0'
     $StartRow.Children.Add($StartBox) | Out-Null
     $StartHint = New-Object System.Windows.Controls.TextBlock
+    $script:StartHintControl = $StartHint
     $StartHint.Text = "/ $($ActiveIndices.Count)"
     $StartHint.Width = 70
     $StartHint.VerticalAlignment = 'Center'
@@ -809,14 +813,14 @@ function Open-Settings {
     $StartButton = New-Object System.Windows.Controls.Button
     $StartButton.Content = '跳到这里'
     $StartButton.Add_Click({
-        $raw = [string]$StartBox.Text
+        $raw = [string]$script:StartBoxControl.Text
         if ($raw -match '\d+') {
             $n = [int]$Matches[0]
             Jump-ToStudyNumber $n
-            $StartBox.Text = [string]($Index + 1)
-            $StartHint.Text = "/ $($ActiveIndices.Count)"
+            $script:StartBoxControl.Text = [string]($Index + 1)
+            $script:StartHintControl.Text = "/ $($ActiveIndices.Count)"
         } else {
-            $StartBox.Text = [string]($Index + 1)
+            $script:StartBoxControl.Text = [string]($Index + 1)
         }
     })
     $StartRow.Children.Add($StartButton) | Out-Null
