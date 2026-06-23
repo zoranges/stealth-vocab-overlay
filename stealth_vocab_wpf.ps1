@@ -320,12 +320,15 @@ function Restore-StudyPosition {
 }
 
 function Jump-ToStudyNumber($number) {
-    if ($ActiveIndices.Count -eq 0) { Rebuild-StudyDeck }
+    Rebuild-StudyDeck
     $target = [int]$number - 1
     if ($target -lt 0) { $target = 0 }
     if ($target -ge $ActiveIndices.Count) { $target = $ActiveIndices.Count - 1 }
     $script:Index = $target
     Refresh-Word
+    $Window.UpdateLayout()
+    $Window.Activate() | Out-Null
+    $Window.Focus() | Out-Null
     Schedule-Timer
     Save-Settings
 }
